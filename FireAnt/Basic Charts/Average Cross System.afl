@@ -1,0 +1,126 @@
+#include_once <FireAnt.h>
+
+_SECTION_BEGIN("Average Cross System");
+if (Nz(VarGet("runonce_Basic")) == 0) {
+VarSet("runonce_Basic",1);
+CellHeight = Param("Cell Height",20,5,200,1); 
+CellWidth = Param("Cell Width",120,5,200,1); 
+PanelYoffset = Param("Cell Row Offset (px)",15,0,Status("pxheight"),1); 
+PanelXoffset = Param("Cell Column Offset (px)",10,0,Status("pxwidth"),1); 
+FontRatio = Param("Font: CellHeight ratio",2,1,20,0.1);
+Triger =1;
+
+
+Column_Begin( "1");
+Triger = TriggerCell( "TEST MODUS OFF", "TEST MODUS ON", colorRed, colorBrightGreen, colorBlack);
+Column_End( );
+
+TestModus = Nz(StaticVarGet("TestModus"), OFF);
+
+TP = LastValue(C);
+PV = StaticVarGet("PV");
+PV = IIf(IsNull(PV), V, PV);
+
+if (Triger == 0) 
+{
+	if ( GetCursorMouseButtons() & 9 ) 
+	{ 
+		TP = Nz(GetCursorYPosition(),Nz(StaticVarGet("TestPrice"),LastValue(C)));
+
+		StaticVarSet("TestPrice", TP);
+	}
+	else { 
+		TP = Nz(StaticVarGet("TestPrice"),LastValue(C));
+	}
+}
+else
+	TP = LastValue(C); 
+
+if (TestModus==OFF) {
+	TP = LastValue(C);
+	PC = C;
+	PH = H;
+	PL = L;
+	PTypical = Avg;
+}
+else {
+	PC = FA_Price(3);
+	PH = FA_Price(1);
+	PL = FA_Price(2);
+	PTypical = FA_Price(5);
+}
+
+StaticVarSet("TP", TP );
+StaticVarSet("PC", PC );
+StaticVarSet("PL", PL );
+StaticVarSet("PH", PH );
+StaticVarSet("PTypical", PTypical);
+
+SetChartOptions(0,chartShowDates|chartShowArrows|chartLogarithmic|chartWrapTitle);
+
+_N(Title = StrFormat("{{NAME}} - {{INTERVAL}} {{DATE}} Open %g, Hi %g, Lo %g, Close %g (%.1f%%) Vol " +WriteVal( PV, 1.0 ) +" {{VALUES}}", O, PH, PL, PC, SelectedValue( ROC( PC, 1 )) ));
+
+Plot( PC, "Close", ParamColor("Color", colorDefault ), styleNoTitle | ParamStyle("Style") | GetPriceStyle() ); 
+
+ShowSig=ParamList("Show Signals","YES|NO");
+ShowAvg=ParamList("Show Average Lines","YES|NO");
+ShowTrailingAndStop = ParamList("Show Trailing Stop Lines", "NO|YES");
+Showprice=ParamList("Show Buy/Sell Prices","NO|YES");
+ 
+
+if (ShowTrailingAndStop=="YES") { 
+	BuyTrailStop = HHV( PC - 2.1 * FA_ATR(3), 7);
+	Plot( BuyTrailStop , "Buy Trailing Stop", colorCustom12, 8); 
+	SellTrailStop = LLV( PC + 2.1 * FA_ATR(3), 7); 
+	Plot( SellTrailStop, "Sell Trailing Stop", colorCustom10, 8); 
+} 
+ 
+ 
+SlowAvg = Param("Slow Average",15,5,200,5);
+FastAvg = Param("Fast Average",5,1,50,1);
+
+Type = ParamList("Type", "Exponential,Simple,Double Exponential,Tripple Exponential,Wilders,Weighted");
+SlowMA = EMA(PC,SlowAvg);
+FastMA = EMA(PC,FastAvg);
+
+if( Type == "Simple" ) 					{ SlowMA = MA( PC, SlowAvg ); FastMA = MA( PC, FastAvg ); }
+if( Type == "Exponential" ) 			{ SlowMA = EMA( PC, SlowAvg ); FastMA = EMA( PC, FastAvg ); }
+if( Type == "Double Exponential" ) 	{ SlowMA = DEMA( PC, SlowAvg ); FastMA = DEMA( PC, FastAvg ); }
+if( Type == "Tripple Exponential" ) 	{ SlowMA = TEMA( PC, SlowAvg ); FastMA = TEMA( PC, FastAvg ); }
+if( Type == "Wilders" ) 				{ SlowMA = Wilders( PC, SlowAvg ); FastMA = Wilders( PC, FastAvg ); }
+if( Type == "Weighted" ) 				{ SlowMA = WMA( PC, SlowAvg ); FastMA = WMA( PC, FastAvg ); }
+
+Buy = Cross(FastMA, SlowMA);
+Sell = Cross(SlowMA, FastMA);
+ 
+Avp = (O+PC)/2;
+
+Shape = Buy * shapeUpArrow + Sell * shapeDownArrow;
+
+if (ShowSig == "YES")
+{
+	PlotShapes(Shape, IIf( Buy, colorBlue, colorRed ),0, IIf( Buy, Low, High ) );
+}
+
+GraphXSpace = 5;
+
+Dist = 2*FA_ATR(3); 
+
+for ( i = 0; i < BarCount; i++ ) 
+{ 
+
+	if (Showprice=="YES")
+	{
+		if ( Buy[i] ) PlotText( "Buy: " + Avp[i], i, PL[i]-Dist[i], colorBlue ); 
+		if ( Sell[i] ) PlotText( "Sell: " + Avp[i], i, PH[i]+Dist[i], colorBlue); 
+	}
+} 
+
+Plot( 1, "", IIf(EMA(PC,FastAvg)>EMA(PC,SlowAvg) , colorPaleGreen, colorRose ),styleArea | styleOwnScale, 0, 1 );
+
+if (ShowAvg=="YES") {
+	Plot(SlowMA, "Slow Average Line", ParamColor( "Slow Average Line Color", colorCycle ), ParamStyle("Slow Average Line Style"), Null, Null, 0, 1); 
+	Plot(FastMA, "Fast Average Line", ParamColor( "Fast Average Line Color", colorCycle ), ParamStyle("Fast Average Line Style"), Null, Null, 0, 1 ); 
+}
+}
+_SECTION_END();

@@ -1,0 +1,34 @@
+#include_once <FireAnt.h>
+_SECTION_BEGIN("Volume");
+if (Nz(VarGet("runonce_Volume")) == 0) {
+VarSet("runonce_Volume",1);
+TestModus = Nz(StaticVarGet("TestModus"), OFF);
+printf("%f\n", TestModus );
+
+TV = LastValue(V);
+
+PC = StaticVarGet("PC");
+PC = IIf(IsNull(PC), C, PC);
+
+if ( GetCursorMouseButtons() & 9 ) 
+	{ 
+		TV = Nz(GetCursorYPosition(),Nz(StaticVarGet("TestVolume"),LastValue(V)));
+
+		StaticVarSet("TestVolume", TV);
+	}
+	else { 
+		TV = Nz(StaticVarGet("TestVolume"),LastValue(V));
+	}
+
+if (TestModus == OFF)
+	TV = LastValue(V);
+
+StaticVarSet("TV", TV);
+
+PV = FA_Price(4);
+
+StaticVarSet("PV", PV);
+
+Plot( PV, _DEFAULT_NAME(), IIf( PC > O, ParamColor("Up Color", colorGreen ), ParamColor("Down Color", colorRed ) ), ParamStyle( "Style", styleHistogram | styleThick, maskHistogram  ) );
+}
+_SECTION_END();

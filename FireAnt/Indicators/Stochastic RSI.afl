@@ -1,0 +1,47 @@
+_SECTION_BEGIN("StochasticRSI");
+/*
+Set MAType=1 if you want the simple version, or MAType=2 for exponential.
+*/
+if (Nz(VarGet("runonce_StochasticRSI")) == 0) {
+VarSet("runonce_StochasticRSI",1);
+RequestTimedRefresh( 1 );
+PC = StaticVarGet("PC" );
+
+PeriodRSI = Param( "PeriodRSI", 13, 1, 250, 1 );
+PeriodStoch = Param( "PeriodStoch", 8, 1, 250, 1 );
+MAType = Param( "MAType", 1, 1, 2, 1 );
+PeriodSK = Param( "PeriodSK", 5, 1, 250, 1 );
+PeriodSD = Param( "PeriodSD", 3, 1, 250, 1 );
+Upper = Param( "Upper", 80, 50, 100, 1 );
+Lower = Param( "Lower", 20, 0, 50, 1 );
+
+if( MAType == 1 )
+{
+	SK = FA_StochasticRSI(0,0,PeriodRSI,PeriodStoch,PeriodSK,PeriodSD);
+	SD = FA_StochasticRSI(1,0,PeriodRSI,PeriodStoch,PeriodSK,PeriodSD);
+
+}
+
+if( MAType == 2 )
+{
+	SK = FA_StochasticRSI(0,1,PeriodRSI,PeriodStoch,PeriodSK,PeriodSD);
+	SD = FA_StochasticRSI(1,1,PeriodRSI,PeriodStoch,PeriodSK,PeriodSD);
+}
+
+Buy=Cross(SK,SD) AND SK < Lower;
+Sell=Cross(SD,SK) AND SD > Upper;
+Buy = ExRem(Buy, Sell);
+Sell = ExRem(Sell, Buy);
+
+
+Plot( SK, "K%", ParamColor( "K% Color", colorBlue ), ParamStyle("%K Style", styleLine) );
+Plot( SD, "D%", ParamColor( "D% Color", colorWhite ), ParamStyle("%D Style",styleDashed) );
+Plot( 50, "Neutral line", ParamColor( "Neutral Color", colorWhite ), styleLine );
+Plot( Upper, "Overbought", ParamColor( "Overbought Color", colorRed ), styleLine );
+Plot( Lower, "Oversold", ParamColor( "Oversold Color", colorGreen ), styleLine );
+
+shape = Buy * shapeUpArrow + Sell * shapeDownArrow; 
+
+PlotShapes( shape, IIf( Buy, colorGreen, colorRed ) );
+}
+_SECTION_END();

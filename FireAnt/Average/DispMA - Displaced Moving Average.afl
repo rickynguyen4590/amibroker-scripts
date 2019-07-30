@@ -1,0 +1,25 @@
+_SECTION_BEGIN("DispMA");
+P = ParamField("Price field",-1);
+Type = ParamList("Type", "SMA,EMA,DEMA,TEMA,Wilders,WMA,AMA,LSMA,TSF,ALMA");
+Periods = Param("Periods", 30, 2, 300 );
+Displacement = Param("Displacement", 15, -50, 50 );
+m = 0;
+
+if( Type == "SMA" ) 			m = MA( P, Periods );
+if( Type == "EMA" ) 			m = EMA( P, Periods );
+if( Type == "DEMA" ) 		m = DEMA( P, Periods );
+if( Type == "TEMA" ) 		m = TEMA( P, Periods );
+if( Type == "Wilders" ) 	m = Wilders( P, Periods );
+if( Type == "WMA" ) 	m = WMA( P, Periods );
+if( Type == "AMA" ) 		m = FA_AMA( P, Periods );
+if( Type == "LSMA" ) 		m = LinearReg( P, Periods );
+if( Type == "TSF" ) 			m = TSF( P, Periods );
+if( Type == "ALMA" ) { 			
+	sigma = Param("Sigma", 6, 1, 20);
+	offset = Param("Offset", 0.85, 0.05, 1.0, 0.05);
+	m = FA_ALMA(P, Periods, sigma, offset);
+}
+
+Plot( m, "", colorGrey40 , styleDashed , 0, 0, 0 );
+Plot( m, _DEFAULT_NAME(), ParamColor("Color", ColorCycle), ParamStyle("Style"), 0, 0, Displacement );
+_SECTION_END();

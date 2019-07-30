@@ -1,0 +1,12 @@
+// Use with vietnamese stock only
+#include_once <FireAnt.h>
+_SECTION_BEGIN("MarketCap");
+if (Nz(VarGet("runonce_MarketCap")) == 0) {
+VarSet("runonce_MarketCap",1);
+RequestTimedRefresh( 1 );
+
+PC = StaticVarGet("PC" );
+Unit = Param( "Money unit", 1000000, 1, 1000000, 1000, 1000);
+Plot(MarketCapitalization(PC, Unit),"MarketCap (Billion):", ParamColor("Up Color", colorGreen ));
+}
+_SECTION_END();

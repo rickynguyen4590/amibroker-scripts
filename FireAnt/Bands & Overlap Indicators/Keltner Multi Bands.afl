@@ -1,0 +1,25 @@
+_SECTION_BEGIN("Keltner Multi Bands");
+P = ParamField("Price field",-1);
+Style = ParamStyle("Style", styleLine );
+CenterLine = EMA( P, 20 );
+KTop1 = CenterLine + 1 * FA_ATR( 10 );
+KBot1 = CenterLine - 1 * FA_ATR( 10 );
+ 
+KTop2 = CenterLine + 2 * FA_ATR( 10 );
+KBot2 = CenterLine - 2 * FA_ATR( 10 );
+ 
+KTop3 = CenterLine + 3 * FA_ATR( 10 );
+KBot3 = CenterLine - 3 * FA_ATR( 10 );
+ 
+Plot( KTop1, "KBTop1" + _PARAM_VALUES(), colorGreen, Style ); 
+Plot( KBot1, "KBBot1" + _PARAM_VALUES(), colorGreen, Style ); 
+ 
+Plot( KTop2, "KBTop2" + _PARAM_VALUES(), colorRed, Style ); 
+Plot( KBot2, "KBBot2" + _PARAM_VALUES(), colorRed, Style ); 
+ 
+Plot( KTop3, "KBTop3" + _PARAM_VALUES(), colorBlue, Style ); 
+Plot( KBot3, "KBBot3" + _PARAM_VALUES(), colorBlue, Style ); 
+ 
+Plot( CenterLine, "Center Line", colorWhite, styleLine | styleDashed );
+_SECTION_END();
+ 

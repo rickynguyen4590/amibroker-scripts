@@ -1,0 +1,6 @@
+_SECTION_BEGIN("FA_AMA");
+P = ParamField("Price field",-1);
+Period = Param("Period", 15, 2, 300, 1, 10);
+
+Plot(FA_AMAb(P, Period), "AMA", ParamColor( "Color", colorCycle ), ParamStyle("Style") );
+_SECTION_END();

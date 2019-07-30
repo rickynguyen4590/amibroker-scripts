@@ -1,0 +1,18 @@
+_SECTION_BEGIN("Daryl Guppy");
+SetChartOptions(0,chartShowArrows|chartShowDates);
+Type = ParamList("Type", "Simple,Exponential,Double Exponential,Tripple Exponential,Wilders,Weighted,Least Squares,Time Series Forecast");
+
+FastMAColor = ParamColor("Fast Group MA Color", colorGreen);
+SlowMAColor = ParamColor("Slow Group MA Color", colorRed);
+
+if( Type == "Simple" ) 					Option = "MA";
+if( Type == "Exponential" ) 			Option = "EMA";
+if( Type == "Double Exponential" ) 	Option = "DEMA";
+if( Type == "Tripple Exponential" ) 	Option = "TEMA";
+if( Type == "Wilders" ) 				Option = "Wilders";
+if( Type == "Weighted" ) 				Option = "WMA";
+if( Type == "Least Squares" ) 			Option = "LinearReg";
+if( Type == "Time Series Forecast" ) 	Option = "TSF";
+FA_Guppy(Option, FastMAColor, SlowMAColor);
+
+_SECTION_END();

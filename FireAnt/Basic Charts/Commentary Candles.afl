@@ -1,0 +1,668 @@
+#include_once <FireAnt.h>
+
+_SECTION_BEGIN("Commentar Candles");
+if (Nz(VarGet("runonce_Basic")) == 0) {
+VarSet("runonce_Basic",1);
+
+CellHeight = Param("Cell Height",20,5,200,1); 
+CellWidth = Param("Cell Width",120,5,200,1); 
+PanelYoffset = Param("Cell Row Offset (px)",15,0,Status("pxheight"),1); 
+PanelXoffset = Param("Cell Column Offset (px)",10,0,Status("pxwidth"),1); 
+FontRatio = Param("Font: CellHeight ratio",2,1,20,0.1);
+Triger =1;
+
+
+Column_Begin( "1");
+Triger = TriggerCell( "TEST MODUS OFF", "TEST MODUS ON", colorRed, colorBrightGreen, colorBlack);
+Column_End( );
+
+TestModus = Nz(StaticVarGet("TestModus"), OFF);
+
+TP = LastValue(C);
+PV = StaticVarGet("PV");
+PV = IIf(IsNull(PV), V, PV);
+
+if (Triger == 0) 
+{
+	if ( GetCursorMouseButtons() & 9 ) 
+	{ 
+		TP = Nz(GetCursorYPosition(),Nz(StaticVarGet("TestPrice"),LastValue(C)));
+
+		StaticVarSet("TestPrice", TP);
+	}
+	else { 
+		TP = Nz(StaticVarGet("TestPrice"),LastValue(C));
+	}
+}
+else
+	TP = LastValue(C); 
+
+if (TestModus==OFF) {
+	TP = LastValue(C);
+	PC = C;
+	PH = H;
+	PL = L;
+	PTypical = Avg;
+}
+else {
+	PC = FA_Price(3);
+	PH = FA_Price(1);
+	PL = FA_Price(2);
+	PTypical = FA_Price(5);
+}
+
+StaticVarSet("TP", TP );
+StaticVarSet("PC", PC );
+StaticVarSet("PL", PL );
+StaticVarSet("PH", PH );
+StaticVarSet("PTypical", PTypical);
+
+SetChartOptions(0,chartShowArrows|chartShowDates);
+ 
+
+/*Body Colors*/
+whiteBody=PC>O;
+blackBody=O>PC;
+idealDoji=O==PC;
+ 
+/*Body Size*/
+smallBodyMaximum=0.0025;//less than 0.25%
+LargeBodyMinimum=0.01;  //greater than 1.0%
+smallBody=(O>=PC*(1-smallBodyMaximum) AND whiteBody) OR (PC>=O*(1-smallBodyMaximum) AND blackBody);
+largeBody=(PC>=O*(1+largeBodyMinimum) AND whiteBody) OR PC<=O*(1-largeBodyMinimum) AND blackBody;
+mediumBody=NOT LargeBody AND NOT smallBody;
+identicalBodies=abs(abs(Ref(O,-1)-Ref(PC,-1))-abs(O-PC)) < abs(O-PC)*smallBodyMaximum;
+realBodySize=abs(O-PC);
+ 
+ 
+/*Shadows*/
+smallUpperShadow=(whiteBody AND PH<=PC*(1+smallBodyMaximum)) OR (blackBody AND PH<=O*(1+smallBodyMaximum));
+smallLowerShadow=(whiteBody AND PL>=O*(1-smallBodyMaximum))  OR (blackBody AND PL>=PC*(1-smallBodyMaximum));
+largeUpperShadow=(whiteBody AND PH>=PC*(1+largeBodyMinimum)) OR (blackBody AND PH>=O*(1+largeBodyMinimum));
+largeLowerShadow=(whiteBody AND PL<=O*(1-largeBodyMinimum))  OR (blackBody AND PL<=PC*(1-largeBodyMinimum));
+ 
+/*Gaps*/
+upGap=  IIf(Ref(blackBody,-1) AND whiteBody AND O>Ref(O,-1),1,
+        IIf(Ref(blackbody,-1) AND blackBody AND PC>Ref(O,-1),1,
+        IIf(Ref(whiteBody,-1) AND whiteBody AND O>Ref(PC,-1),1,
+        IIf(Ref(whiteBody,-1) AND blackBody AND PC>Ref(PC,-1),1,0))));
+ 
+downGap=IIf(Ref(blackBody,-1) AND whiteBody AND PC<Ref(PC,-1),1,
+        IIf(Ref(blackbody,-1) AND blackBody AND O<Ref(PC,-1),1,
+        IIf(Ref(whiteBody,-1) AND whiteBody AND PC<Ref(O,-1),1,
+        IIf(Ref(whiteBody,-1) AND blackBody AND O<Ref(O,-1),1,0))));
+ 
+ 
+/*Candle Definitions*/
+spinningTop=mediumBody;
+doji= abs(PC-O) <= (PC*smallBodyMaximum) OR (abs(O-PC)<=((PH-PL)*0.05));
+//CdDoji(threshold=0.05);
+dojiStar=doji AND (upgap OR downgap)AND Ref(LargeBody,-1);
+marabuzu=LargeBody AND smallUpperShadow AND smallLowerShadow;
+
+/* Shooting Star */
+shootingStar=
+    smallLowerShadow AND NOT doji AND
+   ((blackBody AND abs(O-PH)>2*realBodySize) OR
+   (whiteBody AND abs(PH-PC)>2*realBodySize));
+
+/* Hammer */
+Hammer=smallUpperShadow AND NOT doji AND
+   ((blackBody AND abs(PC-PL)>2*realBodySize) OR
+   (whiteBody AND abs(PL-O)>2*realBodySize));
+ 
+tweezerTop=abs(PH-Ref(PH,-1))<=PH*smallBodyMaximum;
+tweezerBottom=abs(PL-Ref(PL,-1))<=PL*smallBodyMaximum;
+
+engulfing=
+   IIf(blackBody AND Ref(blackbody,-1) AND PC<Ref(PC,-1) AND O>Ref(O,-1),1,
+   IIf(blackBody AND Ref(whiteBody,-1) AND O>Ref(PC,-1) AND PC<Ref(O,-1),1,
+   IIf(whitebody AND Ref(whitebody,-1) AND PC>Ref(PC,-1) AND O<Ref(O,-1),1,
+   IIf(whiteBody AND Ref(blackBody,-1) AND PC>Ref(O,-1)AND O<Ref(PC,-1),1,0))));
+Harami=
+   IIf(blackbody AND Ref(blackBody,-1) AND O<Ref(O,-1) AND PC>Ref(PC,-1),1,
+   IIf(blackBody AND Ref(whiteBody,-1) AND PC>Ref(O,-1) AND O<Ref(PC,-1),1,
+   IIf(whiteBody AND Ref(whiteBody,-1) AND PC<Ref(PC,-1) AND O>Ref(O,-1),1,
+   IIf(whiteBody AND Ref(blackBody,-1) AND O>Ref(PC,-1) AND PC<Ref(O,-1),1,0))));
+ 
+ 
+/*Maximum High Today - (MHT)
+Today is the maximum High in the last 5 days*/
+MHT=  HHV(PH,5)==PH;
+ 
+/*Maximum High Yesterday - (MHY)
+Yesterday is the maximum High in the last 5 days*/
+MHY=   HHV(PH,5)==Ref ( PH, -1);
+ 
+/*Minimum Low Today - (MLT)
+Today is the minimum Low in the last 5 days*/
+MLT=   LLV(PL,5)==PL;
+ 
+/*Minimum Low Yesterday - (MLY)
+Yesterday is the minimum Low in the last 5 days*/
+MLY=   LLV(PL,5)==Ref(PL,-1);
+ 
+/*DOJI definitions*/
+ 
+/*Doji Today - (DT)*/
+DT = abs(PC-O) <= (PC*smallBodyMaximum) OR
+(abs(O-PC)<=((PH-PL)*0.1));
+ 
+/* Doji Yesterday - (DY)*/
+DY = abs(Ref ( PC, -1)-Ref(O,-1)) <= Ref ( PC, -1) *smallBodyMaximum OR
+abs (Ref ( O, -1)-Ref(PC,-1)) <= (Ref ( PH, -1 ) - Ref ( PL, -1 ) )*0.1;
+ 
+/**************************************************
+             BULLISH CANDLESTICKS
+*************************************************** */
+ 
+/* Abandoned Baby Bullish*/
+abandonedBabybullish =Ref(largeBody,-2) AND Ref(blackBody,-2)//Large black candle
+             AND Ref(GapDown(),-1)  
+             AND whiteBody AND LargeBody AND GapUp();//Large white candle
+ 
+/* Belt Hold - Bad formula */
+beltHoldBullish = largeBody AND  whiteBody AND smallUpperShadow AND MLT;
+ 
+ 
+/* BreakAway Bullish */
+breakAwayBullish=Ref(Largebody,-4) AND Ref(blackBody,-4)
+              AND Ref(blackBody,-3) AND Ref(O,-3)<Ref(PC,-4)
+              AND Ref(smallbody,-2) AND Ref(PC,-2)<Ref(PC,-3)
+              AND Ref(PC,-1)<Ref(PC,-2)
+              AND LargeBody AND whiteBody AND PC>Ref(O, -3) 
+              AND PC<Ref(PC,-4);
+ 
+/* Concealing Baby Swallow only one trade */
+ConcealingBabySwallow=Ref(marabuzu,-3) AND Ref(blackbody,-3) AND
+                      Ref(MArabuzu,-2) AND Ref(blackBody,-2) AND
+                      Ref(blackBody,-1) AND Ref(downGap,-1) AND 
+                      Ref(PH,-1)>Ref(PC,-2)AND Ref(blackbody,-1)AND 
+                      blackBody AND engulfing;
+ 
+/* Doji Star Bullish */
+dojiStarBullish=(dojiStar AND (MLT OR MLY))OR 
+   (doji AND (PC<Ref(PC,-1) OR O<Ref(PC,-1))AND Ref(blackBody,-1)
+    AND Ref(LargeBody,-1));
+ 
+/* Engulfing Bullish */   
+engulfingBullish =
+    engulfing AND largeBody AND whiteBody AND 
+    (Ref(blackbody,-1) OR Ref(Doji,-1)) AND MLT;
+ 
+/* Hammer Bullish */
+hammerBullish=Hammer AND (MLT OR MLY);
+ 
+/* Dragonfly Doji Bullish */
+dragonflyDoji=smallBody AND LargeLowerShadow AND smallUpperShadow AND MLT;
+ 
+/* Harami Bullish */
+haramiBullish = harami AND Ref (LargeBody,-1) AND Ref(blackBody,-1) AND
+                NOT LargeBody AND whiteBody;
+ 
+/* Harami Cross */
+HaramiCross=harami AND Ref(LargeBody,-1) AND Ref(blackBody,-1) AND doji; 
+       
+/* Homing Pigeon */
+homingPigeon =  Ref(largeBody,-1) AND Ref(blackBody,-1) AND
+                PH<= Ref ( O, -1 ) AND PL>=Ref( PC, -1) AND PC<O AND MLY;
+ 
+/* Inverted Hammer */
+invertedHammer=shootingStar AND (MLT OR MLY);
+ 
+/* Meeting LinesBullish */
+meetingLinesbullish= Ref(LargeBody,-1) AND Ref(blackBody,-1) AND
+                     LargeBody AND whiteBody AND
+                     PC>Ref(PC,-1)*0.9975 AND PC< Ref(PC,-1)*1.0025;
+ 
+/* Morning Doji Star */
+morningDojiStar= Ref(LargeBody,-2) AND Ref(blackBody,-2) AND
+                 Ref(doji,-1) AND Ref(O,-1)<Ref(PC,-2) AND
+                 whiteBody AND PC>Ref(PC,-2) AND MLY;
+ 
+/* Morning Star */
+morningStar =Ref(largeBody,-2) AND Ref(blackBody,-2)//Large black candle 
+             AND Ref(downGap,-1)//Gap down yesterday
+             AND whiteBody AND LargeBody AND PC>Ref(PC,-2)//Large white candle today
+             AND MLY; //Yesterday was the low
+ 
+/* Piercing Line */
+piercingLine= Ref(largeBody,-1) AND Ref(blackBody,-1)AND
+               O<Ref(PL,-1) AND PC>=(Ref(O,-1)+Ref(PC,-1))/2 AND PC<Ref(O,-1) AND MLT;
+ 
+/* Stick Sandwich*/
+stickSandwich=Ref(largeBody,-2) AND Ref(blackbody,-2) AND 
+              Ref(largeBody,-1) AND Ref(whiteBody,-1) AND
+              Ref(O,-1)>=Ref(PC,-2) AND O>=Ref(PC,-1) AND
+              abs(PC-Ref(PC,-2))<=PC*0.0025;
+ 
+/* Three Inside Up harami confirming */
+threeInsideUp =Ref(Haramibullish,-1) AND whiteBody AND 
+    largeBody AND PC>Ref(PC,-1);
+ 
+ 
+/* Three Outside Up Engulfing confirmation */
+threeOutsideUp =Ref(engulfingBullish,-1) AND whiteBody AND PC>Ref(PC,-1);
+ 
+/* Three Stars in the South */
+threeStarsInTheSouth=
+   Ref(LargeBody,-2) AND Ref(blackBody,-2) AND Ref(largelowerShadow,-2)
+   AND Ref(blackBody,-1) AND Ref(largeLowerShadow,-1) AND 
+   Ref(PL,-1)>Ref(PL,-2) AND blackBody AND smallUpperShadow AND
+   smallLowerShadow AND PL>Ref(PL,-1) AND PH<Ref(PH,-1);
+ 
+/* Tri-Star Bullish */
+triStarBullish=Ref(doji,-2) AND Ref(doji,-1) AND doji AND MLY AND
+   Ref(downgap,-1) AND upGap;
+ 
+/* Three River Bottom Bad formula */
+threeriverBottom=Ref(largeBody,-2) AND Ref(blackBody,-2) AND
+                 Ref(blackbody,-1) AND Ref(Largelowershadow,-1) AND
+                 Ref(O,-1)<Ref(O,-2) AND Ref(PC,-1)>Ref(PC,-2) AND
+                 whiteBody AND PC<Ref(PC,-1) AND MLY;   
+                  
+/* Mat Hold Bullish */
+MatHoldBullish=Ref(LargeBody,-4) AND Ref(whiteBody,-4)//1st day
+   AND Ref(blackBody,-3) AND Ref(upGap,-3) AND NOT Ref(LargeBody,-3)
+   AND NOT Ref(LargeBody,-2) AND Ref(PC,-2)<Ref(PC,-3) AND Ref (O,-2)<Ref(O,-3) AND 
+   Ref(PC,-2)>Ref(O,-4) AND NOT Ref(LargeBody,-1) AND Ref(PC,-1)<Ref(PC,-2)
+   AND LargeBody AND whiteBody AND PC>Ref(PC,-4); 
+ 
+/* RisingThreeMethods */
+risingThreeMethods=Ref(LargeBody,-4) AND Ref(whiteBody,-4) AND NOT
+  Ref(LargeBody,-3) AND NOT Ref(LargeBody,-2)AND NOT Ref(LargeBody,-1) AND
+  Ref(PC,-3)<Ref(PC,-4) AND Ref(PC,-2)<Ref(PC,-3) AND Ref(PC,-1)<Ref(PC,-2) AND
+  LargeBody AND whitebody AND PC>Ref(PC,-4);
+ 
+/* Seperating Lines Bullish */
+separatingLinesBullish=Ref(blackBody,-1) AND whiteBody AND LargeBody AND
+smallLowerShadow AND MHT AND abs(O-Ref(O,-1))<=O*0.0025;
+ 
+/*Side by Side White Lines*/
+sideBySideWhiteLines=NOT Ref(smallBody,-2) AND Ref(whiteBody,-2) 
+   AND Ref(upGap,-1) AND Ref(whitebody,-1)AND whiteBody AND
+   identicalBodies AND abs(O-Ref(O,-1))<O*0.0025;
+ 
+ 
+/* Three White Soldiers */
+threeWhiteSoldiers=NOT Ref(smallbody,-2) AND Ref(whiteBody,-2) AND NOT
+   Ref(smallBody,-1) AND Ref(whiteBody,-1) AND NOT
+   smallBody AND whiteBody AND PC>Ref(PC,-1) AND Ref(PC,-1)>Ref(PC,-2) AND
+   Ref(O,-1)>Ref(O,-2) AND Ref(O,-1)<Ref(PC,-2) AND O<Ref(PC,-1) AND
+   O>Ref(O,-1) AND Ref(smallUpperShadow,-2) AND
+   Ref(smallUpperShadow,-1) AND smallUppershadow AND LLV(PL,12)==Ref(PL,-2);
+ 
+/*Upside Gap Three Methods not very good*/
+upsideGapThreeMethods=Ref(Largebody,-2) AND Ref(whiteBody,-2) AND
+   Ref(LargeBody,-1) AND Ref(whiteBody,-1) AND Ref(upGap,-1) AND
+   blackBody AND O>Ref(O,-1) AND PC<Ref(PC,-2)AND PC>Ref(O,-2) AND 
+  MHY;
+ 
+/*Three Line Strike not good signals*/
+threeLineStrike=NOT Ref(smallBody,-3) AND NOT Ref(smallBody,-2) AND 
+   NOT Ref(smallBody,-1) AND Ref(whiteBody,-3) AND Ref(whiteBody,-2) AND
+   Ref(whiteBody,-1) AND Ref(PC,-1)>Ref(PC,-2) AND Ref(PC,-2)>Ref(PC,-3) AND
+   blackBody AND O>Ref(PC,-1) AND PC<Ref(O,-3);
+ 
+/*Tweezer Bottom*/
+ tweezerBottom= (abs(PL-Ref(PL,-1))/PL<0.0025 OR
+               abs(PL-Ref(PL,-2))/PL<0.0025) AND O < PC AND (Ref( O,-1) > Ref(PC,-1));
+ 
+/*Upside Tasuki Gap*/
+upsideTasukiGap=Ref(largeBody,-2) AND Ref(largeBody,1) AND
+   Ref(whiteBody,-2) AND Ref(whiteBody,-1) AND Ref(upGap,-1) AND
+   blackBody AND O>Ref(O,-1) AND PC<Ref(O,-1) AND PC>Ref(PC,-2) AND
+   identicalBodies AND O<Ref(PC,-1);
+ 
+ 
+/*****************************************
+            BEARISH CANDLESTICKS
+******************************************/
+ 
+/*Abandoned Baby Bearish*/
+AbandonedBabyBearish=Ref(LargeBody,-2) AND Ref(whiteBody,-2) AND
+   Ref(smallBody,-1) AND Ref(GapUp(),-1) AND GapDown() AND 
+   NOT smallBody AND blackBody AND MHY;
+ 
+/*Advance Block Bearish*/
+AdvanceBlockBearish=Ref(LargeBody,-2) AND Ref(whiteBody,-2) 
+    AND Ref(whiteBody,-1) AND
+   whiteBody AND Ref(O,-1)>Ref(O,-2) AND Ref(O,-1)<Ref(PC,-2) AND
+   Ref(PC,-1)>Ref(PC,-2) AND PC>Ref(PC,-1) AND
+   O<Ref(PC,-1) AND O>Ref(O,-1) AND Ref(LargeUpperShadow,-1) AND LargeUpperShadow
+   AND PC-O<Ref(PC,-1)-Ref(O,-1) AND Ref(PC,-1)-Ref(O,-1) < Ref(PC,-2)-Ref(O,-2);
+ 
+/*Belt Hold Bearish*/
+beltHoldBearish=LargeBody AND BlackBody AND smallLowershadow AND MHT;
+ 
+/*Breakaway Bearish*/
+breakAwayBearish=Ref(LargeBody,-4) AND Ref(whiteBody,-4) AND
+   Ref(GapUp(),-3) AND Ref(whiteBody,-3) AND 
+   Ref(smallbody,-2) AND Ref(smallBody,-1) AND
+   blackBody AND O>Ref(O,-3) AND PC<Ref(PC,-4);
+ 
+/*Dark Cloud Cover*/
+darkCloudCover=Ref(LargeBody,-1) AND Ref(whiteBody,-1) AND
+   blackBody AND O>Ref(PH,-1) AND PC>Ref(O,-1) AND PC<(Ref(O,-1)+Ref(PC,-1))/2
+   AND MHT;
+ 
+/*Deliberation Bearish: needs confirmation*/
+deliberationBearish=Ref(LargeBody,-2) AND Ref(whiteBody,-2) AND
+   Ref(LargeBody,-1) AND Ref(whiteBody,-1) AND Ref(PC,-1)>Ref(PC,-2) AND
+   smallbody AND upGap;
+ 
+/*CounterAttackBearish*/
+CounterAttackBearish=MHT AND LargeBody AND blackbody AND
+   Ref(largeBody,-1) AND Ref(whiteBody,-1) AND
+   PC<Ref(PC,-1)*1.0025 AND PC>Ref(PC,-1)*0.9975;;
+ 
+/*Doji Star Bearish*/
+dojiStarBearish=(dojiStar AND (MHT OR MHY))OR 
+   (doji AND (PC>Ref(PC,-1) OR O>Ref(PC,-1))AND Ref(whiteBody,-1)
+    AND Ref(LargeBody,-1));
+ 
+/*Engulfing Bearish*/
+engulfingBearish=engulfing AND largeBody AND blackBody AND 
+    (Ref(whitebody,-1) OR Ref(Doji,-1))AND (MHT OR MHY);
+ 
+/*Evening Doji Star check formula???*/
+eveningDojiStar=Ref(LargeBody,-2) AND Ref(whiteBody,-2) AND
+   Ref(dojiStar,-1) AND Ref(GapUp(),-1) AND (MHY OR MHT);
+ 
+/*Evening Star*/
+eveningStar=Ref(LargeBody,-2) AND Ref(whiteBody,-2) AND
+   Ref(upGap,-1) AND NOT Ref(largeBody,-1) AND blackBody AND NOT smallBody AND
+   (MHT OR MHY);
+ 
+/*Hammer Bearish*/
+HammerBearish=Hammer AND HHV(PH,8)==PH;
+ 
+/*hangingMan*/
+HangingMan=NOT largeBody AND smallUpperShadow AND LargeLowerShadow AND MHT;
+ 
+/*dragonfly Doji Bearish*/
+dragonflyDojiBearish=doji AND smallUpperShadow AND LargeLowerShadow AND MHT;
+   
+/*Harami Bearish-*/
+HaramiBearish=harami AND Ref(Largebody,-1) AND Ref(whiteBody,-1)AND blackBody 
+AND (MHY OR MHT);
+ 
+/*HaramiCross Bearish*/
+HaramiCrossBearish=harami AND doji AND Ref(whiteBody,-1) AND Ref(Largebody,-1);
+ 
+/*Identical three black crows*/
+idendicalThreeBlackCrows=Ref(blackBody,-2) AND Ref(blackBody,-1) AND blackBody AND
+   abs(Ref(PC,-2)-Ref(O,-1))<Ref(PC,-1)*0.0025 AND abs(Ref(PC,-1)-O)<O*0.0025 AND
+   HHV(PH,20)==Ref(PH,-2) AND NOT Ref(doji,-2) AND NOT Ref(doji,-1) AND NOT doji AND
+   Ref(smallLowerShadow,-2) AND Ref(smallLowerShadow,-1) AND smallLowerShadow;
+ 
+/*Kicking Bearish No trades*/
+kickingBearish=Ref(whiteBody,-1) AND Ref(MArabuzu,-1) AND blackBody AND MArabuzu AND GapDown();
+ 
+/*Meeting Lines Bearish*/
+MeetingLinesBearish=Ref(LargeBody,-1) AND Ref(whiteBody,-1) AND
+  HHV(PC,8)==Ref(PC,-1) AND LargeBody AND blackBody AND 
+  abs(PC-Ref(PC,-1))<PC*0.0025;
+ 
+/*ShootingStar*/
+shootingStarGap=shootingStar AND GapUp() AND MHT;
+ 
+/*Gravestone Doji*/
+gravestoneDoji=doji AND largeUpperShadow AND smallLowerShadow AND GapUp()AND MHT;
+ 
+/*Three Inside Down Bearish*/
+threeInsideDownBearish=Ref(HaramiBearish,-1) AND blackBody AND PC<Ref(PC,-1)AND smallUpperShadow;
+ 
+/*Three Outside Down Bearish*/
+threeoutsideDownBearish=Ref(engulfingBearish,-1) AND blackBody AND PC<Ref(PC,-1)AND
+   NOT LargeUpperShadow;
+ 
+/*Tri Star Bearish*/
+triStarBearish=Ref(doji,-2) AND Ref(doji,-1) AND doji AND MHY AND Ref(upGap,-1)AND downGap;
+ 
+/*Two Crows Bearish*/
+twoCrows=Ref(whiteBody,-2) AND Ref(LargeBody,-2) //first day
+   AND Ref(blackBody,-1) AND Ref(upGap,-1)//Second Day
+   AND blackBody AND O<Ref(O,-1) AND O>Ref(PC,-1)AND PC<Ref(PC,-2) AND 
+   PC>Ref(O,-2) AND MHY;//Third day
+ 
+/*Upside Gap Two Crows*/
+upsideGapTwoCrows= Ref(whiteBody,-2) AND Ref(LargeBody,-2)// first day
+   AND Ref(upGap,-1) AND Ref(blackBody,-1) // 2nd day
+   AND blackbody AND O>Ref(O,-1) AND PC<Ref(PC,-1) AND PC>Ref(PC,-2);
+ 
+/*Doji Star Bearish needs confirmation
+dojiStarBearish=Ref(LargeBody,-1) AND Ref(whiteBody,-1) // first day
+   AND doji AND upGap AND MHT;*/
+ 
+/* Downside Gap Three Methods*/
+downsideGapThreeMethods=
+     Ref(LargeBody,-2) AND Ref(blackBody,-2) AND Ref(downGap,-2) //first day
+     AND Ref(LargeBody,-1) AND Ref(blackBody,-1)//2nd day
+     AND whitebody AND O<Ref(O,-1) AND PC>Ref(PC,-2)
+     AND LLV(PL,8)==Ref(PL,-1);
+ 
+/*Downside Tasuki Gap*/
+downsideTasukiGap=
+   Ref(blackBody,-2)//first day
+   AND Ref(blackbody,-1) AND Ref(downgap,-1) //2nd day
+   AND whiteBody AND O<Ref(O,-1) AND O>Ref(PC,-1) AND PC>Ref(O,-1) AND PC<Ref(PC,-2)
+   AND Ref(identicalBodies,-1)                                                                                                                   
+   AND LLV(PL,15)==Ref(PL,-1);
+ 
+ 
+/*Falling Three Meothods*/
+fallingThreeMethods=Ref(LargeBody,-4) AND Ref(blackBody,-4) AND
+  /*Ref(doji,-3) AND Ref(doji,-2) AND Ref(doji,-1) AND*/ Ref(PC,-1)>Ref(PC,-2) 
+  AND Ref(PC,-2)>Ref(PC,-3) AND LargeBody AND blackBody AND O>Ref(PC,-4) AND
+  O<Ref(O,-4) AND PC<Ref(O,-4)AND PC<Ref(PC,-4);
+ 
+/*In Neck Bearish not good*/
+inNeckBearish=Ref(LargeBody,-1) AND Ref(blackBody,-1) AND
+   whiteBody AND O<Ref(PL,-1) AND PC<Ref(PC,-1)*1.0005 AND PC>=Ref(PC,-1);
+ 
+/*On Neck Bearish not good*/
+OnNeckBearish=Ref(LargeBody,-1) AND Ref(blackBody,-1) AND
+   whiteBody AND O<Ref(PL,-1) AND PC<Ref(PL,-1)*1.0025 AND PC>=Ref(PL,-1)*0.9975;
+ 
+/*separating Lines Bearish*/
+separatingLinesBearish=Ref(LargeBody,-1) AND Ref(whiteBody,-1) AND
+   blackBody AND O>Ref(O,-1)*0.9975 AND O<=Ref(O,-1)*1.0025;
+ 
+/*Side By Side White Lines Bearish*/
+sideBySideWhiteLinesBearish=NOT Ref(smallBody,-2) AND Ref(blackBody,-2) AND  
+   Ref(whiteBody,-1) AND whiteBody AND Ref(downGap,-1) AND identicalBodies
+  AND abs(PC-Ref(PC,-1)<PC*0.0025);
+ 
+/*Three Black Crows*/
+threeBlackCrows=Ref(blackBody,-2) AND Ref(blackBody,-1) AND blackBody  AND Ref(PC,-1)<Ref(PC,-2) AND PC<Ref(PC,-1) AND HHV(PH,8)==Ref(PH,-2) AND NOT Ref(doji,-2) AND NOT Ref(doji,-1) AND NOT doji;;
+   
+/*Three Line Strike no trades*/
+threeLineStrike=threeBlackCrows AND whiteBody AND O<Ref(PC,-1) AND PC>Ref(O,-3);
+ 
+/*Thrusting Bearish*/
+thrustingBearish=Ref(blackBody,-1) AND Ref(LargeBody,-1) AND LargeBody AND
+   whitebody AND O<Ref(PL,-1) AND PC<(Ref(O,-1)+Ref(PC,-1))/2 AND PC>Ref(PC,-1);
+ 
+/*Tweezer Top*/
+TweezerTop=abs(PH-Ref(PH,-1))<=PH*0.0025 AND O >PC AND (Ref(PC,-1) > Ref(O,-1));
+ 
+ 
+ 
+ 
+/* ***********************************************
+                  Buy Rules
+**************************************************/
+Buy=
+abandonedBabybullish OR
+beltHoldBullish OR
+breakAwayBullish OR
+ConcealingBabySwallow OR 
+engulfingBullish OR
+hammerBullish OR
+dragonflyDoji OR
+dojiStarBullish OR
+haramiBullish OR
+HaramiCross OR
+homingPigeon OR
+invertedHammer OR
+meetingLinesbullish OR
+morningDojiStar OR
+morningStar OR
+piercingLine OR
+stickSandwich OR
+threeInsideUp OR
+threeOutsideUp OR
+threeStarsInTheSouth OR   
+triStarBullish OR
+threeriverBottom OR
+MatHoldBullish OR
+risingThreeMethods OR
+separatingLinesBullish OR
+sideBySideWhiteLines OR
+threeWhiteSoldiers OR
+upsideGapThreeMethods OR
+threeLineStrike OR
+tweezerBottom OR
+upsideTasukiGap;
+ 
+/************************************
+                    Sell Rules
+*************************************/
+Sell=
+AbandonedBabyBearish OR
+advanceBlockBearish OR
+beltHoldBearish OR
+breakAwayBearish OR
+darkCloudCover OR
+deliberationBearish OR
+CounterAttackBearish OR
+engulfingBearish OR
+eveningDojiStar OR
+eveningStar OR
+HangingMan OR
+dragonflyDojiBearish OR
+HammerBearish OR
+HaramiBearish OR
+HaramiCrossBearish OR
+idendicalThreeBlackCrows OR
+kickingBearish OR
+MeetingLinesBearish OR
+shootingStarGap OR
+gravestoneDoji OR
+threeInsideDownBearish OR
+threeoutsideDownBearish OR
+triStarBearish OR
+twoCrows OR
+upsideGapTwoCrows OR
+dojiStarBearish OR
+downsideGapThreeMethods OR
+downsideTasukiGap OR
+fallingThreeMethods OR
+inNeckBearish OR
+OnNeckBearish OR
+separatingLinesBearish OR
+sideBySideWhiteLinesBearish OR
+threeBlackCrows OR
+threeLineStrike OR
+thrustingBearish OR
+tweezerTop;
+ 
+ 
+/***************************************
+              Commentary
+***************************************
+            Bullish Candles
+****************************************/
+
+
+C_sta =
+WriteIf(abandonedBabybullish,"Abandoned Baby Bullish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorGreen) + "LiWick reliability : High.",
+WriteIf(beltHoldBullish,"Belt Hold Bullish. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison:The larger the candlestick, the more significant it is.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorGreen) + "LitWick Reliability: Low.",
+WriteIf(breakAwayBullish,"Break Away Bullish. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: moderate.",
+WriteIf(ConcealingBabySwallow,"Concealing Baby Swallow. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: High.",
+WriteIf(dojiStarBullish,"Bullish doji Star. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: Needs confirmation. Better at calling tops.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: moderate.",
+WriteIf(engulfingBullish,"Bullish Engulfing. a reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: Factors increasing the pattern's effectiveness are\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "1) The first Day has a small real body AND the Second Day has a large real body.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "2) Pattern appears after protracted OR very fast move.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "3) Heavy Volume on Second real body.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "4) The Second Day engulfs more than one real body.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorGreen) + "LitWick reliability: moderate",
+WriteIf(hammerBullish,"Bullish Hammer. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: The longer the lower shadow, the smaller the upper shadow, AND the smaller the real body, the more significant the pattern.\n" +EncodeColor(GetChartBkColor())+"____________________Nison: " +EncodeColor(colorGreen) +"White real body more bullish than black body.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: Low.",
+WriteIf(dragonflyDoji,"Dragonfly Doji. LitWick reliability: moderate.",
+WriteIf(haramiBullish, "Harami Bullish. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: Less significant. Pattern needs confirmation.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: Low.",
+WriteIf(HaramiCross,"Harami Cross. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: Better indicator than Harami. Better at calling tops than bottoms.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: Low.",
+WriteIf(homingPigeon,"Homing Pigeon. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: moderate.",
+WriteIf(invertedHammer,"Inverted Hammer. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison:Needs bullish verification.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: Low.",
+WriteIf(meetingLinesbullish,"Meeting Lines bullish. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: moderate.",
+WriteIf(morningDojiStar,"Morning Doji Star. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Important reversal Signal.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: High.",
+WriteIf(morningStar,"Morning Star. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: The stronger the white third body the better.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: High.",
+WriteIf(piercingLine,"Piercing Line. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: A stron reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: moderate.",
+WriteIf(stickSandwich,"Stick Sandwich. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: moderate.",
+WriteIf(threeInsideUp,"3 Inside Up. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: High.",
+WriteIf(threeOutsideUp,"3 Outside Up. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: High.",
+WriteIf(threeStarsInTheSouth,"3 Stars in the South. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: moderate.",
+WriteIf(triStarBullish,"Tri-Star Bullish. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: Significant reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: moderate.",
+WriteIf(threeriverBottom,"3 River Bottom. A reversal pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: Selling pressure drying up.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Lit Wick reliability: moderate.",
+WriteIf(MatHoldBullish,"Mat Hold Bullish. A continuation pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: May have 2-4 black candles.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: High. ",
+WriteIf(risingThreeMethods,"Rising Three Methods. A continuation pattern>\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: Has more significance if Volume of white candle sticks is greater than on black candlesticks.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: High.",
+WriteIf(separatingLinesBullish,"Separating Lines Bullish. A continuation pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: Low.",
+WriteIf(sideBySideWhiteLines,"Side by Side White Lines. A continuation pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: if occurring during a downtrend may only be Short covering.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: High.",
+WriteIf(threeWhiteSoldiers,"3 White Soldiers. A continuation pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: Positive, but be aware of negative similar stalled pattern AND advance block pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: High.",
+WriteIf(upsideGapThreeMethods,"Upside Gap 3 Methods. A continuation pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: moderate.",
+WriteIf(threeLineStrike,"3 Line Strike. A continuation pattern.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: Low.",
+WriteIf(tweezerBottom,"Tweezer Bottom.a reversal pattern. With other reversal candles it could indicate a support level.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "Nison: Needs confirmation.",
+WriteIf(upsideTasukiGap,"Upside Tasuki Gap. A continuation pattern.\nNison: the real bodies of the two candlesticks in the gap should be about the same size.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorGreen) + "LitWick reliability: moderate.",
+"No Commentary..." )))))))))))))))))))))))))))))));
+ 
+/***************************************
+                 Bearish Candles
+********************************************/
+C_be = 
+WriteIf(AbandonedBabyBearish,"Abandoned Baby Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Extremely rare.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: high.",
+WriteIf(advanceBlockBearish,"Advancing Block Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Rally is in trouble. Signs of weakening could be progressively smaller white read bodies or relatibvely long upper shadows on the last two white candlesticks.Not necessarily a reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick Reliability: moderate.",
+WriteIf(beltHoldBearish,"Belt Hold Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: The longer the height of the belt-hold candle the more significant the pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: low.",
+WriteIf(breakAwayBearish,"Break Away Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(darkCloudCover,"Dark Cloud Cover. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Factors indicating the importance of this signal are/n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "1)The greater the penetration of the first candle by the second.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "2)Both candles are marabozus.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "3)The second body opens above a major resistance level.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "4)High volume on the second day.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick Reliability: high.",
+WriteIf(deliberationBearish,"Deliberation Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Not a reversal pattern, but a sign the rally is weakening.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(CounterAttackBearish,"Counter Attack Bearish.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: A potential stalling of the rally.",
+WriteIf(engulfingBearish,"Engulfing Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Major reversal signal. Factors increasing patterns importance are\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "1) The first day has a very small real body and the second day a very large real body.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "2) The pattern apears after a protracted or very fast move.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "3) Heavy volume on the second day.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "4) The second day engulfs more than one real body.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(eveningDojiStar,"Evening Doji Star A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Must be confirmed by long black candle.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Lit Wick reliability: high",
+WriteIf(eveningStar,"Evening Star. a reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Gap between second and third bodies does not always occur.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: high.",
+WriteIf(HammerBearish,"Bearish Hammer. a reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: More bearish if hammer is black. Needs bearish confirmation. A large gap down on the following day would be a good confirmation.",
+WriteIf(HangingMan,"Hanging Man. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Same as bearish hammer with a large gap down the following day.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: low.",
+WriteIf(dragonflyDojiBearish,"Dragonfly Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Same as Hanging Man.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(HaramiBearish,"Harami Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Not as significant a reversal pattern as hanging man or engulfing.\nLitWick reliability: low.",
+WriteIf(HaramiCrossBearish,"Harami Cross Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: More significant reversal pattern than Harami. Second day can be white or black.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(idendicalThreeBlackCrows,"Identical 3 Black Crows. A reversal pattern in an uptrend.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison:Very bearish.\n" +EncodeColor(GetChartBkColor())+"____________________" +EncodeColor(colorRed) + "LitWick reliability: high. ",
+WriteIf(kickingBearish,"Kicking Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: high.",
+WriteIf(MeetingLinesBearish,"Meeting Lines Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate, but not as strong as Dark cloud Cover.",
+WriteIf(shootingStarGap,"Shooting Star. a reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison:Not major reversal signal as evening star. Ideally real body would gap away from previous body. Needs to appear after an uptrend.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: low.",
+WriteIf(gravestoneDoji,"Gravestone Doji A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: more significant if it hits new high.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(threeInsideDownBearish,"3 Inside Down. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: high.",
+WriteIf(threeoutsideDownBearish,"3 Outside Down. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: high.",
+WriteIf(triStarBearish,"Tri-Star Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Very significant reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(twoCrows,"2 Crows A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(upsideGapTwoCrows,"Upside Gap 2 Crows. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison:Needs confirmation of a continued reversal on third day.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: high.",
+WriteIf(dojiStarBearish,"Doji Star Bearish. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: needs confirmation.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(downsideGapThreeMethods,"Downside Gap 3 Methods. A continuation pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: \nLitWick reliability: moderate.",
+WriteIf(downsideTasukiGap,"Downside Tasuki Gap. A continuation method.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: If last day closes window, continuation pattern is negated.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(fallingThreeMethods,"Falling 3 Methods. A continuation pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: high.",
+WriteIf(inNeckBearish,"In Neck Bearish. A continuatin pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Similar to piercing pattern but bearish because there is no penetration of second day.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(OnNeckBearish,"On Neck Bearish. A continuation pattern. Similar to piercing pattern but bearish beccause there is no penetration of the second day.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(separatingLinesBearish,"Separating Lines Bearish",
+WriteIf(sideBySideWhiteLinesBearish,"Side by Side White Lines Bearish. A continuation pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: very rare.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: moderate.",
+WriteIf(threeBlackCrows,"3 Black Crows. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Need to appear after a mature advance.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: high.",
+WriteIf(threeLineStrike,"3 Line Strike. A continuation pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: low.",
+WriteIf(thrustingBearish,"Thrusting. A continuation pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Not a reversal day because second day does not pierce midpoint of first day.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "LitWick reliability: low.",
+WriteIf(tweezerTop,"Tweezer Top. A reversal pattern.\n"+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorRed) + "Nison: Needs confirmation.",
+"No Commentary..." )))))))))))))))))))))))))))))))))))));
+ 
+ 
+/***********************************************
+               End Commentary
+************************************************/
+Plot(PC,"Price", IIf(PC> Ref(PC,-1),colorGreen,colorRed), styleCandle ); 
+Title = EncodeColor(colorWhite)+ FullName()+" - "+EncodeColor(colorGold)+ "DATE:"+ Date() +StrFormat(" - Open %g, Hi %g, Lo %g, Close %g " , O,PH,PL,PC )+"Volume : " + V +"\n"+ 
+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorGold) + "Bullish Candles:"+ EncodeColor(colorGreen)+ C_sta  + "\n"+
+EncodeColor(GetChartBkColor())+"____________________" + EncodeColor(colorGold) + "Bearish Candles :"+EncodeColor(colorRed)+ C_be;
+
+PlotVAPOverlay( Param("lines",300,10,1000,1), Param("width",10,1,99,1), ParamColor("color", colorDarkBlue), Param("style",1,0,1,1) |4*ParamToggle("Z-order", "On top|Behind", 1 ));
+//PlotVAPOverlay( Param("lines",300,10,1000,1), Param("width",10,1,99,1), ParamColor("color", colorDarkBlue), 1);
+}
+_SECTION_END();

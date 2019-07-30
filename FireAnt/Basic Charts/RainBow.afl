@@ -1,0 +1,93 @@
+#include_once <FireAnt.h>
+
+_SECTION_BEGIN("Rainbow");
+if (Nz(VarGet("runonce_Basic")) == 0) {
+VarSet("runonce_Basic",1);
+CellHeight = Param("Cell Height",20,5,200,1); 
+CellWidth = Param("Cell Width",120,5,200,1); 
+PanelYoffset = Param("Cell Row Offset (px)",15,0,Status("pxheight"),1); 
+PanelXoffset = Param("Cell Column Offset (px)",10,0,Status("pxwidth"),1); 
+FontRatio = Param("Font: CellHeight ratio",2,1,20,0.1);
+Triger =1;
+
+
+Column_Begin( "1");
+Triger = TriggerCell( "TEST MODUS OFF", "TEST MODUS ON", colorRed, colorBrightGreen, colorBlack);
+Column_End( );
+
+TestModus = Nz(StaticVarGet("TestModus"), OFF);
+
+TP = LastValue(C);
+PV = StaticVarGet("PV");
+PV = IIf(IsNull(PV), V, PV);
+
+if (Triger == 0) 
+{
+	if ( GetCursorMouseButtons() & 9 ) 
+	{ 
+		TP = Nz(GetCursorYPosition(),Nz(StaticVarGet("TestPrice"),LastValue(C)));
+
+		StaticVarSet("TestPrice", TP);
+	}
+	else { 
+		TP = Nz(StaticVarGet("TestPrice"),LastValue(C));
+	}
+}
+else
+	TP = LastValue(C); 
+
+if (TestModus==OFF) {
+	TP = LastValue(C);
+	PC = C;
+	PH = H;
+	PL = L;
+	PTypical = Avg;
+}
+else {
+	PC = FA_Price(3);
+	PH = FA_Price(1);
+	PL = FA_Price(2);
+	PTypical = FA_Price(5);
+}
+
+StaticVarSet("TP", TP );
+StaticVarSet("PC", PC );
+StaticVarSet("PL", PL );
+StaticVarSet("PH", PH );
+StaticVarSet("PTypical", PTypical);
+
+SetChartOptions(0,chartShowArrows|chartShowDates);
+
+
+_N(Title = StrFormat("{{NAME}} - {{INTERVAL}} {{DATE}} Open %g, Hi %g, Lo %g, Close %g (%.1f%%) Vol " +WriteVal( PV, 1.0 ) +" {{VALUES}}", O, PH, PL, PC, SelectedValue( ROC( PC, 1 )) ));
+
+
+Type = ParamList("Type", "Simple,Exponential,Double Exponential,Tripple Exponential,Wilders,Weighted,Least Squares,Time Series Forecast");
+
+
+if( Type == "Simple" ) 					Option = 1;
+if( Type == "Exponential" ) 			Option = 2;
+if( Type == "Double Exponential" ) 	Option = 3;
+if( Type == "Tripple Exponential" ) 	Option = 4;
+if( Type == "Wilders" ) 				Option = 5;
+if( Type == "Weighted" ) 				Option = 6;
+if( Type == "Least Squares" ) 			Option = 7;
+if( Type == "Time Series Forecast" ) 	Option = 8;
+
+
+side = 1;
+
+increment = Param("Increment" ,2, 1, 10, 1 );
+
+for( i = 10; i < 80; i = i + increment )
+{
+	up = FA_Signal( PC, i , Option);
+	down = FA_Signal( PC, i + increment, Option );
+
+	if( ParamToggle( "3D effect?", "No|Yes", 1 ) )
+		side = IIf(up<=down AND Ref( up<=down, 1 ), 1, 0.6 );
+
+	PlotOHLC( up,up,down,down, "", ColorHSB( 3*(i - 10), Param("Saturation" , 128, 0, 255 ),	side * Param("Brightness" , 255, 0, 255 ) ), styleCloud | styleNoLabel, Null, Null, Null, -1 );
+}
+}
+_SECTION_END();

@@ -1,0 +1,12 @@
+_SECTION_BEGIN("Normalized Volume");
+if (Nz(VarGet("runonce_NormalizedVolume")) == 0) {
+VarSet("runonce_NormalizedVolume",1);
+RequestTimedRefresh( 1 );
+
+PV = StaticVarGet("PV" );
+
+nVolume = FA_Normalized(PV,50);
+
+Plot( nVolume, _DEFAULT_NAME(), IIf( nVolume >= 150, ParamColor("High Volume", colorGreen ), IIf(nVolume <= 75 , ParamColor("Low Volume", colorRed ),ParamColor("Normal Volume", colorYellow )) ), ParamStyle( "Style", styleHistogram | styleThick, maskHistogram  ) );
+}
+_SECTION_END();

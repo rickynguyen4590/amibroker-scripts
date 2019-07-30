@@ -1,0 +1,33 @@
+_SECTION_BEGIN("RSI");
+if (Nz(VarGet("runonce_RSI")) == 0) {
+VarSet("runonce_RSI",1);
+RequestTimedRefresh( 1 );
+
+periods = Param( "Periods", 14, 1, 200, 1 );
+
+OBSPeriods = Param( "Observation Periods", 50, 1, 200, 1 );
+
+OVM = Param( "OS and OB Margin", 0.8, 0.7, 1, 1 );
+
+PC = StaticVarGet("PC" );
+RSIValue = FA_RSI(periods);
+
+RSIValueAdj = RSIValue -50;
+Plot( RSIValue , "RSI", ParamColor( "Color", colorCycle ), ParamStyle("Style"));
+OB = OVM *HHV(RSIValueAdj ,OBSPeriods )+50;
+Plot(OB,"OverBought", colorYellow,styleLine);
+OS = OVM *LLV(RSIValueAdj ,OBSPeriods )+50;
+Plot(OS,"OverSold", colorYellow,styleLine);
+Middle = (HHV(RSIValueAdj ,OBSPeriods )+LLV(RSIValueAdj ,OBSPeriods ))/2+50;
+Plot(Middle,"NEUTRAL", colorYellow,styleLine);
+
+Buy = Cross(RSIValue,OS );
+Sell = Cross(OB, RSIValue);
+Buy = ExRem(Buy, Sell);
+Sell = ExRem(Sell, Buy);
+
+shape = Buy * shapeUpArrow + Sell * shapeDownArrow; 
+
+PlotShapes( shape, IIf( Buy, colorGreen, colorRed ) );
+}
+_SECTION_END();

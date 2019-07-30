@@ -1,0 +1,14 @@
+_SECTION_BEGIN("Historical Volatility")
+if (Nz(VarGet("runonce_HistoricalVolatility")) == 0) {
+VarSet("runonce_HistoricalVolatility",1);
+
+RequestTimedRefresh( 1 );
+
+PC = StaticVarGet("PC" );
+
+HVPeriod = Param("HV Period",21,5,252,1);
+HV = StDev(log(PC/Ref(PC,-1)),HVPeriod)*sqrt(252)*100;
+Plot( HV , "HV ", ParamColor( "Color", colorCycle ), ParamStyle("Style")  );
+}
+
+_SECTION_END();

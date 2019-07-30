@@ -1,0 +1,89 @@
+#include_once <FireAnt.h>
+
+_SECTION_BEGIN("Peak And Trough");
+if (Nz(VarGet("runonce_Basic")) == 0) {
+VarSet("runonce_Basic",1);
+CellHeight = Param("Cell Height",20,5,200,1); 
+CellWidth = Param("Cell Width",120,5,200,1); 
+PanelYoffset = Param("Cell Row Offset (px)",15,0,Status("pxheight"),1); 
+PanelXoffset = Param("Cell Column Offset (px)",10,0,Status("pxwidth"),1); 
+FontRatio = Param("Font: CellHeight ratio",2,1,20,0.1);
+Triger =1;
+
+
+Column_Begin( "1");
+Triger = TriggerCell( "TEST MODUS OFF", "TEST MODUS ON", colorRed, colorBrightGreen, colorBlack);
+Column_End( );
+
+TestModus = Nz(StaticVarGet("TestModus"), OFF);
+
+TP = LastValue(C);
+PV = StaticVarGet("PV");
+PV = IIf(IsNull(PV), V, PV);
+
+if (Triger == 0) 
+{
+	if ( GetCursorMouseButtons() & 9 ) 
+	{ 
+		TP = Nz(GetCursorYPosition(),Nz(StaticVarGet("TestPrice"),LastValue(C)));
+
+		StaticVarSet("TestPrice", TP);
+	}
+	else { 
+		TP = Nz(StaticVarGet("TestPrice"),LastValue(C));
+	}
+}
+else
+	TP = LastValue(C); 
+
+if (TestModus==OFF) {
+	TP = LastValue(C);
+	PC = C;
+	PH = H;
+	PL = L;
+	PTypical = Avg;
+}
+else {
+	PC = FA_Price(3);
+	PH = FA_Price(1);
+	PL = FA_Price(2);
+	PTypical = FA_Price(5);
+}
+
+StaticVarSet("TP", TP );
+StaticVarSet("PC", PC );
+StaticVarSet("PL", PL );
+StaticVarSet("PH", PH );
+StaticVarSet("PTypical", PTypical);
+
+SetChartOptions(0,chartShowArrows|chartShowDates);
+
+
+_N(Title = StrFormat("{{NAME}} - {{INTERVAL}} {{DATE}} Open %g, Hi %g, Lo %g, Close %g (%.1f%%) Vol " +WriteVal( PV, 1.0 ) +" {{VALUES}}", O, PH, PL, PC, SelectedValue( ROC( PC, 1 )) ));
+
+PriceStyle = GetPriceStyle();
+PriceStyleOpt = ParamStyle("Price Style")|PriceStyle;
+
+X=1; 
+Constant= 0.000; 
+
+Upper = Ref(Peak(PC,X),-1)*(1 + Constant); 
+Lower = Ref(Trough(PC,X),-1)*(1 - Constant); 
+
+
+Buy = Cross(PC, Upper); 
+Sell= Cross(Lower,PC); 
+Buy = ExRem(Buy, Sell);
+Sell = ExRem(Sell, Buy);
+
+Color=IIf(BarsSince(Buy)<BarsSince(Sell),ParamColor("Bullish",colorBrightGreen),ParamColor("Bearish",colorRed));
+
+Plot(PC,"Peak & Trought",Color,64); 
+
+Plot(Upper,"",ParamColor("Upper",colorBlue),styleDashed); 
+Plot(Lower,"",ParamColor("Lower",colorOrange),styleDashed); 
+
+PlotShapes(shapeUpArrow*Buy,ParamColor("UpArrow",10),0,L); 
+PlotShapes(shapeDownArrow*Sell,ParamColor("DownArrow",11),0,H);
+} 
+_SECTION_END();

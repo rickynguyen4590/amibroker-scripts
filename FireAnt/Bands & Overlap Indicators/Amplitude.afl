@@ -1,0 +1,7 @@
+P = ParamField("Price field",-1);
+Width = Param("Width%", 7, 0, 15, 1 );
+Color = ParamColor("Color", colorCycle );
+Style = ParamStyle("Style", styleLine | styleNoLabel );
+
+Plot( (1 + Width * 0.01) * Ref(C,-1), "%AmplitudeTop" + _PARAM_VALUES(), Color, Style ); 
+Plot( (1 - Width * 0.01) * Ref(C,-1), "%AmplitudeBot" + _PARAM_VALUES(), Color, Style ); 

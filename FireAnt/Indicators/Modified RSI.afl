@@ -1,0 +1,52 @@
+_SECTION_BEGIN("MODIFIED RSI");
+if (Nz(VarGet("runonce_MODIFIEDRSI")) == 0) {
+VarSet("runonce_MODIFIEDRSI",1);
+
+RequestTimedRefresh( 1 );
+
+PC = StaticVarGet("PC" );
+SetChartBkColor(ParamColor("Panel color ",colorBlack));
+RP = Param("RSI",7,2,20,1);
+UL= Param("Upper Limit",70,0,100,1);
+LL= Param("Lower Limit",30,0,100,1);
+PlotGrid(UL,colorRed);    
+PlotGrid(LL,colorGreen); 
+R = FA_RSI(RP);
+Plot(R, "MODIFIED RSI",  colorLime, styleThick);
+ 
+Overbought=70;
+Oversold=30;
+Plot(Overbought,"Overbought Zone",colorRed);
+Plot(Oversold,"Oversold Zone",colorGreen);
+ 
+
+ 
+MaxGraph=10;
+Period1 = Param("Period 1", 10, 5, 50, 1);
+Period2 = Param("Period 2", 10, 5, 50, 1);
+EMA1 = EMA(R,Period1);
+EMA2 = EMA(EMA1,Period2);
+PR = abs(2*EMA1 - EMA2);
+ 
+Graph0 = PR;
+ 
+MoveAvg = MA(PR,5);  
+ 
+Graph1 = MoveAvg;          
+Graph1Color = colorTan;
+ 
+Graph0Style = 4;
+upbar = PR>=MoveAvg AND PR>= Ref(PR,-1) ;
+downbar =(PR < MoveAvg) OR PR>= MoveAvg AND PR< Ref(PR,-1) ;
+barcolor = IIf( downbar,colorRed, IIf( upbar, colorBrightGreen, 7));
+Graph0BarColor = ValueWhen( barcolor != 0, barcolor );
+
+Buy = Cross(PR, MoveAvg) AND PR < Oversold;
+Sell = Cross(MoveAvg, PR) AND PR > Overbought;
+Buy = ExRem(Buy, Sell);
+Sell = ExRem(Sell, Buy);
+ 
+PlotShapes(IIf(Sell, shapeDownArrow , shapeNone), colorRed);
+PlotShapes(IIf(Buy, shapeUpArrow , shapeNone), colorGreen); 
+}
+_SECTION_END();

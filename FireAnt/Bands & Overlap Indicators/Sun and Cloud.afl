@@ -1,0 +1,69 @@
+_SECTION_BEGIN("Sun & Cloud_i");
+GraphXSpace = 3;
+RequestTimedRefresh( 1 );
+
+per = Param("Period",20,10,55,1);
+TH =IIf(Ref(PC,-1) > PH,Ref(PC,-1),PH);
+ 
+TL=IIf(Ref(PC,-1) < PL,Ref(PC,-1),PL);
+TR = TH-TL;
+TRa= Wilders(TR,per);
+UpperBand3 =MA(PC, per) + ( 4.2360 * TRa);
+UpperBand2=MA(PC, per) + ( 2.6180 * TRa);
+UpperBand1=MA(PC, per) + ( 1.6180 * TRa);
+ 
+MidPoint=MA(PC, per);
+ 
+LowerBand1=MA(PC, per) - ( 1.6180 * TRa);
+LowerBand2=MA(PC, per) - ( 2.6180 * TRa);
+LowerBand3=MA(PC, per) - ( 4.2360 * TRa);
+ 
+ 
+Plot(MidPoint,"",colorGreen,4);
+Plot(UpperBand1,"",colorRed,1);
+Plot(LowerBand1,"",colorRed,1);
+Plot(UpperBand2,"",colorAqua,1);
+Plot(LowerBand2,"",colorAqua,1);
+Plot(UpperBand3,"",colorYellow,1);
+Plot(LowerBand3,"",colorYellow,1);
+ 
+//PlotOHLC(O,PH,PL,PC,"",colorWhite,64);
+
+ 
+/*
+Reading of the chart, 
+1.for long term investors, 
+a.Bullish when you see the sun(Yellow zone) 
+b.Bearish when you see the dark cloud(Black 
+zone) 
+c.Turning point from bullish to bearish:When 
+red line break into the yellow zone. 
+d.Turning point from bearish to bullish: When 
+red line break through the dark cloud. 
+2.for short term trading, 
+reading the changes between the white line and 
+the red line 
+*/ 
+ 
+Long2 =EMA( ( HHV( PH, 20 ) + LLV( PL, 20) )/2,20);
+Long1 =EMA( ( HHV( PH, 5 ) + LLV( PL, 5) )/2,10);
+K=(PH+2*PC+PL)/4;
+Z=  ( HHV( PH, 3 ) + LLV( PL, 3) )/2 ;
+SP=IIf(K>=Z*1.05,1.10*Z,IIf(K<Z*1.05 AND K>=Z,1.0*Z,IIf(K<Z,0.9*Z,0.9*Z)));
+M=IIf(Long1>long2,Long2,Long1);
+ 
+Plot(PC,"Close",colorBlack,styleLine);
+ 
+SetChartBkGradientFill( ParamColor("Sky",ColorRGB( 128, 128, 255 )),ParamColor("Sky lower", colorGrey40),ParamColor("Text", colorLightGrey));
+PlotOHLC( Long1 ,  Long1 ,  m, Long1 ," ", ParamColor("Left Side",ColorRGB( 213, 213, 0 )),styleCloud ); 
+PlotOHLC( Long2 ,  Long2 ,  m, Long2 ," ", colorGrey40,styleCloud ); 
+PlotOHLC( Long1 ,  Long1 ,  m, Long1 ," ", ParamColor("Land",ColorRGB( 115, 61, 54 )),styleArea );
+ 
+Title=Name() + " { Sun & Cloud } : \n"+WriteIf(Long1>long2,"Rising Sun","Dark Cloud Cover");
+ 
+GfxSelectSolidBrush(colorOrange);
+GfxCircle( 100, 85 , 28 );
+GfxSelectSolidBrush(colorYellow);
+GfxSelectPen( colorRed ); 
+GfxCircle( 100, 85 , 20 );
+_SECTION_END();

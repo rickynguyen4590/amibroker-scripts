@@ -1,0 +1,46 @@
+// Downloaded From www.WiseStockTrader.com
+_SECTION_BEGIN("Wavetrend");
+if (Nz(VarGet("runonce_Wavetrend")) == 0) {
+VarSet("runonce_Wavetrend",1);
+RequestTimedRefresh( 1 );
+AP = StaticVarGet("PTypical" );
+
+ChannelPeriods = Param("Channel Periods",10,1,50,1);
+AvgPeriods = Param("Average Periods",31,1,50,1);
+OverBought = Param("Over Bought Line",50,0,100,1);
+OverSold = Param("Over Sold Line",-50,-100,0,1);
+//ColTCI = ParamColor("TCI Line Color",colorBrown);
+ColOB = ParamColor("Over Bought Color",colorRed);
+ColOS = ParamColor("Over Sold",colorGreen);
+XSpace = Param("GraphXSpace",7,0,20,0.5);
+
+ESA = EMA(AP, ChannelPeriods);
+D = EMA(abs(AP - ESA), ChannelPeriods);
+CI = (AP - ESA) / (0.015 * D);
+
+WaveTrend = EMA(CI, AvgPeriods);
+WaveSignal = MA(WaveTrend,4);
+
+TrendColor = 
+IIf (WaveTrend > WaveSignal, colorGreen, IIf (WaveSignal> WaveTrend, colorRed ,colorLightYellow));
+
+Plot(WaveTrend ,"WaveTrend ",TrendColor, styleLine);
+Plot(WaveSignal,"Signal",ParamColor("Signal Line color", colorPaleBlue),styleDashed); 
+
+Plot(OverBought,"",ColOB,8+16);
+Plot(OverSold,"",ColOS,8+16);
+
+GraphXSpace = XSpace; 
+}
+_SECTION_END();
+
+_SECTION_BEGIN("Buy Sell Signal");
+ 
+Buy=Cross(WaveTrend,WaveSignal) AND WaveTrend < OverSold;
+Sell=Cross(WaveSignal,WaveTrend) AND  WaveTrend > OverBought;
+Buy = ExRem(Buy, Sell);
+Sell = ExRem(Sell, Buy);
+
+PlotShapes(shapeUpArrow*Buy,colorGreen);
+PlotShapes(shapeDownArrow*Sell,colorRed);
+_SECTION_END ();

@@ -1,0 +1,4 @@
+P = ParamField("Price field",-1);
+Periods = Param("Periods", 15, 2, 300, 1, 10 );
+LinearRegression = LinearReg( P, Periods );
+Plot( LinearRegression, _DEFAULT_NAME(), ParamColor( "Color", colorCycle ), ParamStyle("Style") ); 

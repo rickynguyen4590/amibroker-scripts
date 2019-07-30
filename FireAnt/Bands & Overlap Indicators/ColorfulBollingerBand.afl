@@ -1,0 +1,25 @@
+// Drag and drop on the price chart (for using with FireAnt Price chart only)
+_SECTION_BEGIN("Colorf Bollinger Bands");
+
+Period = Param("Short Periods", 20, 15, 30, 1 );
+Width = Param("Short Width", 2, 1, 10, 1 );
+Avg = MA(PC,Period);
+Top = BBandTop( PC, Period, Width );
+Bottom = BBandBot( PC, Period, Width );
+ 
+TopCond=Top >Ref(Top ,-1);
+MidCond=Avg >Ref(Avg ,-1);
+BotCond=Bottom >Ref(Bottom ,-1);
+ 
+ 
+UpColor=IIf(TopCond AND MidCond,colorDarkBlue,colorDarkRed);
+DownColor=IIf(MidCond AND BotCond,colorDarkBlue,colorDarkRed);
+ 
+PlotOHLC(Top,Top,Avg,Avg, "", UpColor, styleCloud+styleNoLabel+styleNoTitle, Null, Null, Null, -2 );
+PlotOHLC(Avg,Avg,Bottom ,Bottom , "", DownColor, styleCloud+styleNoLabel+styleNoTitle, Null, Null, Null, -2 );
+ 
+Plot(Bottom ,"",colorLime,styleThick+styleNoTitle, Null, Null, Null, -1);
+Plot(Top,"",colorLime,styleThick+styleNoTitle, Null, Null, Null, -1);
+Plot(Avg,"",colorLime,styleThick+styleNoTitle, Null, Null, Null, -1);
+ 
+_SECTION_END();

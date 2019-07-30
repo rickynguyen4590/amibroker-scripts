@@ -1,0 +1,49 @@
+_SECTION_BEGIN("SentimentalRSI");
+if (Nz(VarGet("runonce_SentimentalRSI")) == 0) {
+VarSet("runonce_SentimentalRSI",1);
+SetChartOptions(0,0,chartGrid30|chartGrid70);
+RequestTimedRefresh( 1 );
+
+PC = StaticVarGet("PC" );
+PH = StaticVarGet("PH" );
+PL = StaticVarGet("PL" );
+
+RSIPeriod = Param( "RSI Period", 14, 1, 200, 1 );
+HMAPeriod = Param( "HMA Period", 14, 1, 200, 1 );
+SignalPeriod = Param( "Signal Period", 5, 1, 200, 1 );
+OverBought = Param( "Upper", 70, 50, 100, 1 );
+OverSold = Param( "Lower", 30, 0, 50, 1 );
+
+SentimentalRSI = HMA(RSIa((PH+PL+PC+O)/4,RSIPeriod),HMAPeriod); 
+
+Plot (SentimentalRSI , "S-RSI", ParamColor( "S-RSI Color", colorRed ), ParamStyle("Style"));
+Type = ParamList("Type", "Exponential,Simple,Double Exponential,Tripple Exponential,Wilders,Weighted,Least Squares,Time Series Forecast");
+
+
+
+if( Type == "Simple" ) 					Option = 1;
+if( Type == "Exponential" ) 			Option = 2;
+if( Type == "Double Exponential" ) 	Option = 3;
+if( Type == "Tripple Exponential" ) 	Option = 4;
+if( Type == "Wilders" ) 				Option = 5;
+if( Type == "Weighted" ) 				Option = 6;
+if( Type == "Least Squares" ) 			Option = 7;
+if( Type == "Time Series Forecast" ) 	Option = 8;
+
+SignalLine = FA_Signal(SentimentalRSI, SignalPeriod, Option );
+
+Plot( SignalLine, "Signal" , ParamColor( "Signal Color", colorWhite ), styleDashed );
+
+Plot( OverBought , "OverBought", ParamColor( "OB Color", colorRed ), styleLine );
+Plot( OverSold , "OverSold", ParamColor( "OS Color", colorGreen ), styleLine );
+
+Buy=Cross(SentimentalRSI,SignalLine) AND SentimentalRSI < OverSold ;
+Sell=Cross(SignalLine,SentimentalRSI) AND SentimentalRSI > OverBought ;
+Buy = ExRem(Buy, Sell);
+Sell = ExRem(Sell, Buy);
+
+shape = Buy * shapeUpArrow + Sell * shapeDownArrow; 
+
+PlotShapes( shape, IIf( Buy, colorGreen, colorRed ) );
+}
+_SECTION_END();

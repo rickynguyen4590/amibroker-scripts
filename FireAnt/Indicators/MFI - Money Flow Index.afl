@@ -1,0 +1,31 @@
+_SECTION_BEGIN("MFI");
+if (Nz(VarGet("runonce_MFI")) == 0) {
+VarSet("runonce_MFI",1);
+RequestTimedRefresh( 1 );
+
+periods = Param( "Periods", 14, 1, 200, 1 );
+OBSPeriods = Param( "Observation Periods", 50, 1, 200, 1 );
+OVM = Param( "OS and OB Margin", 0.9, 0.8, 1, 1 );
+
+PTypical = StaticVarGet("PTypical" );
+PV = StaticVarGet("PV" );
+MFIValue = FA_MFI( periods);
+MFIValueAdj = MFIValue -50;
+Plot( MFIValue , "MFI", ParamColor( "Color", colorCycle ), ParamStyle("Style")  );
+OB = OVM *HHV(MFIValueAdj ,OBSPeriods ) + 50;
+Plot(OB,"OverBought", colorYellow,styleLine);
+OS = OVM *LLV(MFIValueAdj ,OBSPeriods )+50;
+Plot(OS,"OverSold", colorYellow,styleLine);
+Middle = (HHV(MFIValueAdj,OBSPeriods )+LLV(MFIValueAdj,OBSPeriods ))/2+50;
+Plot(Middle ,"NEUTRAL", colorYellow,styleLine);
+
+Buy = Cross(MFIValue, OS);
+Sell = Cross(OB, MFIValue);
+Buy = ExRem(Buy, Sell);
+Sell = ExRem(Sell, Buy);
+
+shape = Buy * shapeUpArrow + Sell * shapeDownArrow; 
+
+PlotShapes( shape, IIf( Buy, colorGreen, colorRed ) );
+}
+_SECTION_END();

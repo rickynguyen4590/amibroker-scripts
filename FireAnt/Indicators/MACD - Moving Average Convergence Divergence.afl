@@ -1,0 +1,39 @@
+_SECTION_BEGIN("MACD");
+if (Nz(VarGet("runonce_MACD")) == 0) {
+VarSet("runonce_MACD",1);
+RequestTimedRefresh( 1 );
+PC = StaticVarGet("PC" );
+Type = ParamList("Type", "Simple,Exponential,Double Exponential,Tripple Exponential,Wilders,Weighted,Least Squares,Time Series Forecast");
+
+r1 = Param( "Fast avg", 12, 2, 200, 1 );
+r2 = Param( "Slow avg", 26, 2, 200, 1 );
+r3 = Param( "Signal avg", 9, 2, 200, 1 );
+
+if( Type == "Simple" ) 					Option = 1;
+if( Type == "Exponential" ) 			Option = 2;
+if( Type == "Double Exponential" ) 	Option = 3;
+if( Type == "Tripple Exponential" ) 	Option = 4;
+if( Type == "Wilders" ) 				Option = 5;
+if( Type == "Weighted" ) 				Option = 6;
+if( Type == "Least Squares" ) 			Option = 7;
+if( Type == "Time Series Forecast" ) 	Option = 8;
+
+m = FA_MACD(r1,r2);
+s = FA_Signal(m,r3, Option);
+
+Plot( m, StrFormat(_SECTION_NAME()+"(%g,%g)", r1, r2), ParamColor("MACD color", colorBlue ), ParamStyle("MACD style", styleLine) );
+
+Plot( s, "Signal" + _PARAM_VALUES(), ParamColor("Signal color", colorWhite ), ParamStyle("Signal style", styleDashed) );
+
+Plot( m-s, "MACD Histogram", ParamColor("Histogram color", colorOrange ), styleNoTitle | ParamStyle("Histogram style", styleHistogram | styleNoLabel, maskHistogram ) );
+
+Buy=Cross(m,s) AND m<0;
+Sell=Cross(s,m) AND m>0;
+Buy = ExRem(Buy, Sell);
+Sell = ExRem(Sell, Buy);
+
+shape = Buy * shapeUpArrow + Sell * shapeDownArrow; 
+
+PlotShapes( shape, IIf( Buy, colorGreen, colorRed ) );
+}
+_SECTION_END();

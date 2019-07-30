@@ -1,0 +1,94 @@
+_SECTION_BEGIN("Auto Fibo");
+if (Nz(VarGet("runonce_AutoFibo")) == 0) {
+VarSet("runonce_AutoFibo",1);
+GraphXSpace=2; 
+Plot(C,"", colorWhite,styleCandle); 
+
+// Get values for fib levels 
+
+range = FA_Range();
+StartBar = SelectedValue(range); 
+FinishBar = EndValue(range); 
+i = startbar; 
+period = FinishBar - StartBar; 
+
+Lo = LLV(L,period); 
+Hi = HHV(H,period); 
+Line0 = 0; 
+Line1 = 0; 
+Line2 = 0; 
+Line3 = 0; 
+Line4 = 0; 
+Line5 = 0; 
+Line6 = 0; 
+Line100 = 0; 
+
+for( i = startbar; i < finishbar; i++ ) 
+{ 
+if(EndValue(C)<SelectedValue(C)) 
+{ 
+Line0 = EndValue(Lo); 
+Line100 = EndValue(Hi); 
+Line1 = Line0 + abs(Line100-Line0)*0.236; 
+Line2 = Line0 + abs(Line100-Line0)*0.382; 
+Line3 = Line0 + abs(Line100-Line0)*0.5; 
+Line4 = Line0 + abs(Line100-Line0)*0.618; 
+Line5 = Line0 + abs(Line100-Line0)*0.786; 
+Line6 = Line0 + abs(Line100-Line0)*1.618; 
+
+
+} 
+else 
+{ 
+Line100 = EndValue(Lo); 
+Line0 = EndValue(Hi); 
+Line1 = Line0 - abs(Line100-Line0)*0.236;
+Line2 =Line0 - abs(Line100-Line0)*0.382; 
+Line3 = Line0 - abs(Line100-Line0)*0.5; 
+Line4 = Line0 - abs(Line100-Line0)*0.618; 
+Line5 = Line0 - abs(Line100-Line0)*0.786; 
+Line6 = Line0 - abs(Line100-Line0)*1.618; 
+
+
+} 
+} 
+
+// external fib lines begining fom selecetdbarindex() 
+fib0= LineArray(startbar, Line0, finishbar, Line0, 0, 1); 
+
+fib100 = LineArray(startbar, Line100, finishbar, Line100, 0, 1); 
+
+// depth of middle lines 
+n= round((finishbar-startbar)/2); 
+
+// middle lines 
+fib1= LineArray((finishbar-n), Line1, finishbar, Line1, 0, 1); 
+fib2= LineArray((finishbar-n), Line2, finishbar, Line2, 0, 1); 
+fib3= LineArray((finishbar-n), Line3, finishbar, Line3, 0, 1); 
+fib4= LineArray((finishbar-n), Line4, finishbar, Line4, 0, 1); 
+fib5= LineArray((finishbar-n), Line5, finishbar, Line5, 0, 1); 
+fib6= LineArray((finishbar-n), Line6, finishbar, Line6, 0, 1); 
+
+
+Plot(fib0,"", colorWhite); 
+PlotText("0% ("+Line0+")", BarCount+1, Line0, colorWhite, colorDefault); 
+
+Plot(fib100,"", colorRed); 
+PlotText("100% ("+Line100+")", BarCount+1, Line100, colorRed, colorDefault); 
+Plot(fib1,"", colorPink); 
+PlotText("23.6% ("+Line1+")", BarCount+1, Line1, colorPink, colorDefault);
+Plot(fib2,"", colorOrange); 
+PlotText("38.2% ("+Line2+")", BarCount+1, Line2, colorOrange, colorDefault); 
+Plot(fib3,"", colorPink); 
+PlotText("50% ("+Line3+")", BarCount+1, Line3, colorPink, colorDefault); 
+Plot(fib4,"", colorPaleGreen); 
+PlotText("61.8% ("+Line4+")", BarCount+1, Line4, colorPaleGreen, colorDefault); 
+Plot(fib5,"", colorYellow); 
+PlotText("78.6% ("+Line5+")", BarCount+1, Line5, colorYellow, colorDefault); 
+Plot(fib6,"", colorSkyblue); 
+PlotText("161.8% ("+Line6+")", BarCount+1, Line6, colorSkyblue, colorDefault); 
+ 
+
+Title = Name() + " - Auto FIB LEVELS ";
+}
+_SECTION_END();

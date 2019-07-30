@@ -1,0 +1,8 @@
+_SECTION_BEGIN("ALMA");
+P = ParamField("Price field",-1);
+windowSize = Param("Window Size", 9, 5, 201, 2);
+sigma = Param("Sigma", 6, 1, 20);
+Offset = Param("Offset", 0.85, 0.05, 1.0, 0.05);
+ALMAerage = FA_ALMA(P, windowSize, sigma, Offset);
+Plot(ALMAerage, "ALMA", ParamColor("Color",colorBlue), ParamStyle("Style"));
+_SECTION_END();
