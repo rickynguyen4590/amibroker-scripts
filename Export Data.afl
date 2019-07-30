@@ -1,0 +1,29 @@
+Filter = 1;
+baseDir = "D:\\Users\\Ricky\\Git\\algotraderviet\\module\\cron\\data\\";
+
+fname = StrReplace(Name(), "/", "-");
+fname = baseDir + fname + ".csv";
+
+fh = fopen( fname, "w" );
+if( fh ) 
+{ 
+  dt = DateTime();
+  fputs( "date,open,high,low,close,volume\n", fh );
+  for( i = 0; i < BarCount; i++ )
+  {
+    line = DateTimeToStr( dt[ i ] ) + "," +
+           Open[ i ] + "," +
+           High[ i ] + "," +
+           Low[ i ] + "," +
+           Close[ i ] + "," +
+           NumToStr(Volume[ i ], 1.0, False) + "\n";
+           
+    fputs( line, fh );
+  }
+
+  fclose( fh );
+} 
+else 
+{ 
+   Error("ERROR: file can not be open: " +  fname); 
+} 
