@@ -1,3 +1,0 @@
-_SECTION_BEGIN("ADLine");
-Plot( ADLine(), _DEFAULT_NAME(), ParamColor("Color",  colorCycle ), ParamStyle("Style")  );
-_SECTION_END();

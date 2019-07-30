@@ -1,4 +1,0 @@
-Periods = Param("Periods", 20, 2, 300, 1 );
-
-Plot( NewDarvasLow(PH, PL, Periods ), "DL", colorGreen );
-Plot( NewDarvasHigh(PH, Periods ), "DH", colorRed );
